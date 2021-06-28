@@ -4,39 +4,94 @@ import argparse
 import shutil
 
 
-def encode(input_file, output_file):
-	print("encoding ", input_file, output_file)
-	# write code here
+class Node(object):
+	left = None
+	right = None
+	item = None
+	weight = 0
 
-	# simply copying the file to bypass the actual test.
-	# remove the below lines.
-	if input_file != "" and output_file != "":
-		shutil.copyfile(input_file, output_file)
+	def _init_(self, symbol, weight, l=None, r=None):
+		self.symbol = symbol
+		self.weight = weight
+		self.left = l
+		self.right = r
 
-
-def decode(input_file, output_file):
-	print("decoding ", input_file, output_file)
-	# write code here
-
-	# simply copying the file to bypass the actual test.
-	# remove the below lines.
-	if input_file != "" and output_file != "":
-		shutil.copyfile(input_file, output_file)
+	def _repr_(self):
+		return '("%s", %s, %s, %s)' % (self.symbol, self.weight, self.left, self.right)
 
 
-def get_options(args=sys.argv[1:]):
-	parser = argparse.ArgumentParser(description="Huffman compression.")
-	groups = parser.add_mutually_exclusive_group(required=True)
-	groups.add_argument("-e", type=str, help="Encode files")
-	groups.add_argument("-d", type=str, help="Decode files")
-	parser.add_argument("-o", type=str, help="Write encoded/decoded file", required=True)
-	options = parser.parse_args()
-	return options
+def sortByWeight(node):    
+  return (node.weight * 1000000 + ord(node.symbol[0])) 
+		
+
+class HuffmanEncoder:
+  def _init_(self):
+    self.symbols = {}
+    self.codes = {}
+    self.tree = []
+    self.message = ""
+    
+  def frequencyAnalysis(self):
+    self.symbols = {}
+    for symbol in self.message :
+        self.symbols[symbol] = self.symbols.get(symbol,0) + 1
+
+  def preorder_traverse(self, node, path=""):
+      if node.left == None:
+        self.codes[node.symbol] = path
+      else:
+           self.preorder_traverse(node.left,path+"0")
+           self.preorder_traverse(node.right,path+"1")    
+	  
+  def encode(self, message):
+    self.message = message
+    
+    self.frequencyAnalysis()
+    
+    
+    self.tree = []
+    for symbol in self.symbols.keys():
+      self.tree.append((Node(symbol,self.symbols[symbol],None,None)))
+    
+   
+    self.tree.sort(key=sortByWeight)
+    
+   
+    while len(self.tree)>1: 
+      leftNode = self.tree.pop(0)
+      rightNode = self.tree.pop(0)
+      newNode = Node(leftNode.symbol + rightNode.symbol,leftNode.weight + rightNode.weight,leftNode,rightNode) 
+      self.tree.append(newNode)
+      self.tree.sort(key=sortByWeight)
+
+    
+    self.codes = {}
+    self.preorder_traverse(self.tree[0])
+
+   
+    encodedMessage = ""
+    for symbol in message:
+      encodedMessage = encodedMessage + self.codes[symbol]
+    
+    return encodedMessage  
+    
+  def viewCodes(self):
+    print("Huffman Codes:")
+    list = []
+    for symbol in self.codes.keys():
+      code = self.codes[symbol]
+      list.append([len(code),symbol, code])
+    list.sort()
+    for code in list:
+      print("\""+code[1] + "\" : \"" + code[2]+"\",",end='')
 
 
-if __name__ == "__main__":
-	options = get_options()
-	if options.e is not None:
-		encode(options.e, options.o)
-	if options.d is not None:
-		decode(options.d, options.o)
+with open('test.txt', 'r+') as textfile:
+    text = textfile.read()
+    message = text.rstrip()
+encoder = HuffmanEncoder()
+compressedMessage = encoder.encode(message)
+encoder.viewCodes()
+
+with open('encode.huff', 'w+') as encodedfile:
+    encodedfile.write(compressedMessage)
